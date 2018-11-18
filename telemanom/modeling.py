@@ -10,6 +10,59 @@ from telemanom._globals import Config
 config = Config("config.yaml")
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2' # suppress tensorflow CPU speedup warnings
 
+def pytorch_get_model(anom, X_train, y_train, logger, train=False):
+    '''Train LSTM model according to specifications in config.yaml or load pre-trained model.
+
+    Args:
+        anom (dict): contains all anomaly information for a given input stream
+        X_train (np array): numpy array of training inputs with dimensions [timesteps, l_s, input dimensions)
+        y_train (np array): numpy array of training outputs corresponding to true values following each sequence
+        logger (obj): logging object
+        train (bool): If False, will attempt to load existing model from repo
+
+    Returns:
+        model (obj): Trained Keras LSTM model 
+    '''
+    device = torch.device('cuda' if config.cuda
+                          and torch.cuda.is_available() else 'cpu')
+
+    if not train and os.path.exists(os.path.join("data", config.use_id, "models", anom["chan_id"] + ".h5")):
+        logger.info("Loading pre-trained model")
+        return pytorch.load(os.path.join("data", config.use_id, "models", anom["chan_id"] + ".h5"), map_location=device)
+
+    elif (not train and not os.path.exists(os.path.join("data", config.use_id, "models", anom["chan_id"] + ".h5"))) or train:
+        
+        if not train:
+            logger.info("Training new model from scratch.")
+
+        cbs = [History(), EarlyStopping(monitor='val_loss', patience=config.patience, 
+            min_delta=config.min_delta, verbose=0)]
+        
+        model = Sequential()
+
+        model.add(LSTM(
+            config.layers[0],
+            input_shape=(None, X_train.shape[2]),
+            return_sequences=True))
+        model.add(Dropout(config.dropout))
+
+        model.add(LSTM(
+            config.layers[1],
+            return_sequences=False))
+        model.add(Dropout(config.dropout))
+
+        model.add(Dense(
+            config.n_predictions))
+        model.add(Activation("linear"))
+
+        model.compile(loss=config.loss_metric, optimizer=config.optimizer) 
+
+        model.fit(X_train, y_train, batch_size=config.lstm_batch_size, epochs=config.epochs, 
+            validation_split=config.validation_split, callbacks=cbs, verbose=True)
+        model.save(os.path.join("data", anom['run_id'], "models", anom["chan_id"] + ".h5"))
+
+        return model
+
 
 def get_model(anom, X_train, y_train, logger, train=False):
     '''Train LSTM model according to specifications in config.yaml or load pre-trained model.
@@ -24,6 +77,9 @@ def get_model(anom, X_train, y_train, logger, train=False):
     Returns:
         model (obj): Trained Keras LSTM model 
     '''
+
+    if config.use_pytorch:
+        return pytorch_get_model(anom, X_train, y_train, logger, train=False)
 
     if not train and os.path.exists(os.path.join("data", config.use_id, "models", anom["chan_id"] + ".h5")):
         logger.info("Loading pre-trained model")

@@ -3,6 +3,13 @@
 train: False # train new or existing model for each channel
 predict: False # generate new predicts or, if False, use predictions stored locally
 use_id: "2018-05-19_15.00.10"
+# use_pytorch: True
+# cuda: True
+errors: False # get errors
+transfer: True
+transfer_space: True
+# transfer_space: False
+
 
 # number of values to evaluate in each batch
 batch_size: 70

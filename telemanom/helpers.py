@@ -8,7 +8,6 @@ import csv
 import pandas as pd
 import plotly as py
 from plotly.offline import download_plotlyjs, init_notebook_mode
-import cufflinks as cf
 import glob
 
 config = Config("config.yaml")
