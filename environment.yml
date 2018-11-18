@@ -9,3 +9,5 @@ dependencies:
   - pyyaml=3.13=py36h14c3975_0
   - scipy=1.1.0=py36hfa4b5c9_1
   - tensorflow=1.11.0=mkl_py36ha6f0bda_0
+  - pandas=0.23.4=py36h04863e7_0
+  - plotly=3.4.0=py36h28b3542_0
